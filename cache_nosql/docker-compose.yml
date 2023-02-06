@@ -1,0 +1,34 @@
+version: "3.4"
+
+services:
+
+  redis:
+    image: 'bitnami/redis:latest'
+    container_name: bench_redis
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_PORT_NUMBER=8743
+    ports:
+      - '8743:8743'
+    volumes:
+      - "./volumes:/redis_data"
+    restart: unless-stopped
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: bench_dragonfly
+    ulimits:
+      memlock: -1
+    command:
+      - "--save_schedule=*:*" # save for every 1 minute
+      - "--dir=/data"
+      - "--dbfilename=dump.rdb"
+    ports:
+      - '6379:6379'
+    volumes:
+      - "./volumes:/dragonfly_data"
+    restart: unless-stopped
+    
+volumes:
+  redis_data:
+  dragonfly_data:
