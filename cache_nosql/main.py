@@ -9,7 +9,7 @@ if __name__ == "__main__":
     _dragonfly = dragonfly_bench.DragonflyBenchmarkClass()
     
     try:
-        times = 10
+        times = 50
         
         _redis.connect()
         _dragonfly.connect()
