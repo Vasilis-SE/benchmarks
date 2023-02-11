@@ -1,6 +1,5 @@
 import os
 import json
-from types import NoneType
 
 class Dataset:
     
@@ -10,9 +9,9 @@ class Dataset:
         self.path = None
 
     def generate_path(self):
-        self.set_path('./datasets/{}.json'.format(self.name))
+        self.set_path('../datasets/{}.json'.format(self.name))
         
-    def fetch_ds(self):        
+    def fetch_ds(self):      
         if not os.path.exists(self.path):
             raise Exception("[Error] No dataset in with the given name...")
 
@@ -32,11 +31,11 @@ class Dataset:
     def get_path(self) -> str:
         return self.path
     
-    def set_dataset(self, ds) -> NoneType:
+    def set_dataset(self, ds):
         self.ds = ds
     
-    def set_name(self, name) -> NoneType:
+    def set_name(self, name):
         self.name = name
     
-    def set_path(self, path) -> NoneType:
+    def set_path(self, path):
         self.path = path

@@ -1,4 +1,6 @@
-import time
+import pandas as pd
+import sys
+sys.path.append('../')
 
 import dataset
 import cache_nosql.models.dragonfly as dragonflydb
@@ -7,41 +9,52 @@ import benchmark
 
 if __name__ == "__main__":
     _bench = benchmark.Benchmark()
-    _ds = dataset.Dataset("names")
+    _ds = dataset.Dataset()
     _redis = redisdb.RedisImplementationClass()
     _dragonfly = dragonflydb.DragonflyImplementationClass()
     
     try:
+        # Connect to databases
         _redis.connect()
         _dragonfly.connect()
         
+        # Setup dataset
+        _ds.set_name("names")
+        _ds.generate_path()
+        _ds.fetch_ds()
         
-        _bench.set_repetition(10)
-        _bench.run_benchmark(_redis, )
+        # ======== Benchmarking ========
+        benchmark_list_results = []
         
+        # Benchmark 100 registries for 10 repetitions
+        _bench.reset_benchmark()
+        _bench.set_database_name('redis')
+        _bench.set_repetitions(10)
+        _bench.run_benchmark(_redis, _ds.get_dataset()[0:100], True)
+        _bench.print_benchmark()
+        benchmark_list_results.append(_bench.get_benchmark_dict())
+        
+        _bench.reset_benchmark()
+        _bench.set_database_name('dragonfly')
+        _bench.set_repetitions(10)
+        _bench.run_benchmark(_dragonfly, _ds.get_dataset()[0:100], True)
+        _bench.print_benchmark()
+        benchmark_list_results.append(_bench.get_benchmark_dict())
 
-        # Redis 10 registries set
+
+        # Dataframe
+        df = pd.DataFrame.from_dict(benchmark_list_results)
+        df.columns.values[0] = 'Database'
+        df.columns.values[1] = '# Repetitions'
+        df.columns.values[2] = 'Avg Execution Time (s)'
+
+        print(df)
+
  
-        print("The average exectution time for set function on redis is: {} s".format(str(avg_bench_exec_sec)))
-        
-        
-        # Dragonfly 100 registries set
-        sum_benchmarks = 0
-        for j in range(0, times):
-            start = time.time()
-            for i in range(0,100):
-                _dragonfly.set(names[i].get('_id'), names[i].get('name'))
-            end = time.time()
-            time_seconds = end - start
-            
-            sum_benchmarks += time_seconds
-            _dragonfly.flush()
-
-        avg_bench_exec_sec = sum_benchmarks / times
-        print("The average exectution time for set function on dragonfly is: {} s".format(str(avg_bench_exec_sec)))
-         
+    
     except Exception as e:
-        print("[ERROR] " + str(e))
+        print(str(e))
+        sys.exit()
         
     
     

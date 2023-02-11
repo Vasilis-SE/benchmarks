@@ -23,6 +23,4 @@ class DragonflyImplementationClass(CacheFunctionalitiesInterface):
         return self.connector.get(key)
         
     def flush(self) -> bool:
-        result = self.connector.flushall()
-        print('The result of the flushall is: {} '.format(result))
-        return True if result is 'OK' else False
+        return self.connector.flushall()
