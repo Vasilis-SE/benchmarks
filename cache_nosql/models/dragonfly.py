@@ -2,7 +2,7 @@ import redis
 
 from cache_nosql.interfaces.cache_functionalities import CacheFunctionalitiesInterface
 
-class DragonflyBenchmarkClass(CacheFunctionalitiesInterface): 
+class DragonflyImplementationClass(CacheFunctionalitiesInterface): 
     
     def __init__(self):
         self.connector = None

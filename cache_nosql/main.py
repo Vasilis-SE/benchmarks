@@ -3,33 +3,25 @@ import time
 import dataset
 import cache_nosql.models.dragonfly as dragonflydb
 import cache_nosql.models.redis as redisdb
+import benchmark
 
 if __name__ == "__main__":
+    _bench = benchmark.Benchmark()
     _ds = dataset.Dataset("names")
-    _redis = redisdb.RedisBenchmarkClass()
-    _dragonfly = dragonflydb.DragonflyBenchmarkClass()
+    _redis = redisdb.RedisImplementationClass()
+    _dragonfly = dragonflydb.DragonflyImplementationClass()
     
     try:
-        times = 10
-        
         _redis.connect()
         _dragonfly.connect()
         
         
+        _bench.set_repetition(10)
+        _bench.run_benchmark(_redis, )
+        
 
-        # Redis 100 registries set
-        sum_benchmarks = 0
-        for j in range(0, times):
-            start = time.time()
-            for i in range(0,100):
-                _redis.set(names[i].get('_id'), names[i].get('name'))
-            end = time.time()
-            time_seconds = end - start
-            
-            sum_benchmarks += time_seconds
-            _redis.flush()
-
-        avg_bench_exec_sec = sum_benchmarks / times
+        # Redis 10 registries set
+ 
         print("The average exectution time for set function on redis is: {} s".format(str(avg_bench_exec_sec)))
         
         
