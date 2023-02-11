@@ -1,12 +1,12 @@
 import json
 import time
 
-import dragonfly_bench
-import redis_bench
+import cache_nosql.models.dragonfly as dragonflydb
+import cache_nosql.models.redis as redisdb
 
 if __name__ == "__main__":
-    _redis = redis_bench.RedisBenchmarkClass()
-    _dragonfly = dragonfly_bench.DragonflyBenchmarkClass()
+    _redis = redisdb.RedisBenchmarkClass()
+    _dragonfly = dragonflydb.DragonflyBenchmarkClass()
     
     try:
         times = 50

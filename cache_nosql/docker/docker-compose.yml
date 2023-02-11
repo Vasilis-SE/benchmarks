@@ -11,7 +11,7 @@ services:
     ports:
       - '8743:8743'
     volumes:
-      - "./volumes:/redis_data"
+      - "../volumes:/redis_data"
     restart: unless-stopped
 
   dragonfly:
@@ -26,7 +26,7 @@ services:
     ports:
       - '6379:6379'
     volumes:
-      - "./volumes:/dragonfly_data"
+      - "../volumes:/dragonfly_data"
     restart: unless-stopped
     
 volumes:
