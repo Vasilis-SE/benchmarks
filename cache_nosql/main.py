@@ -1,21 +1,21 @@
-import json
 import time
 
+import dataset
 import cache_nosql.models.dragonfly as dragonflydb
 import cache_nosql.models.redis as redisdb
 
 if __name__ == "__main__":
+    _ds = dataset.Dataset("names")
     _redis = redisdb.RedisBenchmarkClass()
     _dragonfly = dragonflydb.DragonflyBenchmarkClass()
     
     try:
-        times = 50
+        times = 10
         
         _redis.connect()
         _dragonfly.connect()
         
-        names_ds = open('../datasets/names.json')
-        names = json.load(names_ds)
+        
 
         # Redis 100 registries set
         sum_benchmarks = 0
