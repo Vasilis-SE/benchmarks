@@ -58,7 +58,6 @@ class Benchmark:
         self.avg_exec = sum_exec_time / self.repetitions
         return True
 
-
     # Getters / Setters
     def get_database_name(self) -> str:
         return self.database

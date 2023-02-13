@@ -12,24 +12,11 @@ import cache_nosql.models.dragonfly as dragonflydb
 import cache_nosql.models.redis as redisdb
 import benchmark
 
-def clean_results():
-    for con in connectors:
-        con['results'] = []
-    
-def set_cmd_benchmark_suite():
+def set_cmd_benchmark_suite(flush):
     clean_results()
     
-    set_cmd_benchmark_suites = [
-        {'ds_size': 100, 'flush': True},
-        {'ds_size': 500, 'flush': True},
-        # {'ds_size': 1000, 'flush': True},
-        # {'ds_size': 2000, 'flush': True},
-        # {'ds_size': 5000, 'flush': True}
-    ]
-    
     # Set command Benchmarking 
-    benchmark_list_results = []        
-    for suite in set_cmd_benchmark_suites:
+    for idx, suite in enumerate(_set_cmd_benchmark_suites):
         for con in connectors:
             _bench.reset_benchmark()
             _bench.set_database_name(re.sub(
@@ -39,24 +26,37 @@ def set_cmd_benchmark_suite():
             _bench.set_repetitions(5)
             _bench.set_chunk_size(suite.get('ds_size'))
             
-            _bench.run_set_benchmark(con.get('instance'), 
-                                _ds.get_dataset()[0:suite.get('ds_size')], 
-                                suite.get('flush'))
-            # _bench.print_benchmark()
+            # Determin begining of data chunk
+            chunk_beginning = 0
+            if suite.get('append'):
+                if idx != 0:
+                    chunk_beginning = _set_cmd_benchmark_suites[idx - 1].get('ds_size')
+
+            # Perform the set operation
+            _bench.run_set_benchmark(
+                con.get('instance'), 
+                _ds.get_dataset()[chunk_beginning:suite.get('ds_size')], 
+                flush)
             
             bench_result = _bench.get_benchmark_dict()
             con.get('results').append(bench_result.get('avg_exec'))
-            benchmark_list_results.append(bench_result)
-    
-    # Plot results & save image
-    X_axis = np.arange(len(set_cmd_benchmark_suites))
-    X_labels = [d['ds_size'] for d in set_cmd_benchmark_suites]
+            _benchmark_list_results.append(bench_result)
+  
+def get_cmd_benchmark_suite():
+    clean_results()
+ 
+def render_benchmark_set_cmd_results():
+    X_axis = np.arange(len(_set_cmd_benchmark_suites))
+    X_labels = [d['ds_size'] for d in _set_cmd_benchmark_suites]
     
     for idx, con in enumerate(connectors):
         plt.bar((X_axis + (idx * 0.25)),
             con.get('results'),
             width=0.25,
-            label=re.sub('ImplementationClass$', '', type(con.get('instance')).__name__), 
+            label=re.sub(
+                'ImplementationClass$', 
+                '',
+                type(con.get('instance')).__name__), 
             color=con.get('c')) 
         
     plt.xticks(X_axis, X_labels)
@@ -68,19 +68,23 @@ def set_cmd_benchmark_suite():
     plt.savefig('./benchmarks/set_cmd.png')
 
     # Dataframe
-    df = pd.DataFrame.from_dict(benchmark_list_results)
+    df = pd.DataFrame.from_dict(_benchmark_list_results)
     df.columns.values[0] = 'Database'
     df.columns.values[1] = '# Repetitions'
-    df.columns.values[2] = 'Data Chunk Size'
+    df.columns.values[2] = '# of Sets'
     df.columns.values[3] = 'Avg Execution Time (s)'
 
     _pdf.pandas_df_to_pdf(df, './benchmarks/set_cmd.pdf')
 
     print(df)
- 
-def get_cmd_benchmark_suite():
-    clean_results()
   
+def clean_results():
+    global _benchmark_list_results
+    
+    _benchmark_list_results = []
+    for con in connectors:
+        con['results'] = []       
+       
 if __name__ == "__main__":
     _bench = benchmark.Benchmark()
     _ds = dataset.Dataset()
@@ -88,12 +92,21 @@ if __name__ == "__main__":
     _redis = redisdb.RedisImplementationClass()
     _dragonfly = dragonflydb.DragonflyImplementationClass()
 
+    _benchmark_list_results = []        
+    _set_cmd_benchmark_suites = [
+        {'ds_size': 100, 'append': False},
+        {'ds_size': 500, 'append': False},
+        # {'ds_size': 1000, 'flush': True},
+        # {'ds_size': 2000, 'flush': True},
+        # {'ds_size': 5000, 'flush': True}
+    ]
+    
+    connectors = [
+        {'instance': _redis, 'c': 'red', 'results': []},
+        {'instance': _dragonfly, 'c': 'mediumorchid', 'results': []}
+    ]
+
     try:
-        # Connect to databases
-        connectors = [
-            {'instance': _redis, 'c': 'red', 'results': []},
-            {'instance': _dragonfly, 'c': 'mediumorchid', 'results': []}
-        ]
         for con in connectors:
             con.get('instance').connect()
 
@@ -102,12 +115,22 @@ if __name__ == "__main__":
         _ds.generate_path()
         _ds.fetch_ds()
         
-        set_cmd_benchmark_suite()
-        get_cmd_benchmark_suite()
+        # Set command benchmark with static data size inside store
+        set_cmd_benchmark_suite(flush=True)
+        render_benchmark_set_cmd_results()
         
+        for con in connectors:                
+            for suite in _set_cmd_benchmark_suites:
+                _bench.run_set_benchmark(
+                    con.get('instance'), 
+                    _ds.get_dataset()[0:suite.get('ds_size')], 
+                    suite.get('flush'))
+        
+        
+        get_cmd_benchmark_suite()
+ 
     except Exception as e:
         print(str(e))
         sys.exit()
         
-    
     
