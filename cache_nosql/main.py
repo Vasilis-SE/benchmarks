@@ -12,11 +12,11 @@ import cache_nosql.models.dragonfly as dragonflydb
 import cache_nosql.models.redis as redisdb
 import benchmark
 
-def set_cmd_benchmark_suite(flush):
+def set_cmd_benchmark_suite(bench_suite, flush):
     clean_results()
     
     # Set command Benchmarking 
-    for idx, suite in enumerate(_set_cmd_benchmark_suites):
+    for idx, suite in enumerate(bench_suite):
         for con in connectors:
             _bench.reset_benchmark()
             _bench.set_database_name(re.sub(
@@ -26,11 +26,11 @@ def set_cmd_benchmark_suite(flush):
             _bench.set_repetitions(5)
             _bench.set_chunk_size(suite.get('ds_size'))
             
-            # Determin begining of data chunk
+            # Determine begining of data chunk
             chunk_beginning = 0
             if suite.get('append'):
                 if idx != 0:
-                    chunk_beginning = _set_cmd_benchmark_suites[idx - 1].get('ds_size')
+                    chunk_beginning = bench_suite[idx - 1].get('ds_size')
 
             # Perform the set operation
             _bench.run_set_benchmark(
@@ -45,9 +45,9 @@ def set_cmd_benchmark_suite(flush):
 def get_cmd_benchmark_suite():
     clean_results()
  
-def render_benchmark_set_cmd_results():
-    X_axis = np.arange(len(_set_cmd_benchmark_suites))
-    X_labels = [d['ds_size'] for d in _set_cmd_benchmark_suites]
+def render_benchmark_set_cmd_results(bench_suite, file_name):
+    X_axis = np.arange(len(bench_suite))
+    X_labels = [d['ds_size'] for d in bench_suite]
     
     for idx, con in enumerate(connectors):
         plt.bar((X_axis + (idx * 0.25)),
@@ -65,16 +65,16 @@ def render_benchmark_set_cmd_results():
     plt.ylabel('Average Execution Time')
     plt.legend()
     # plt.show()
-    plt.savefig('./benchmarks/set_cmd.png')
+    plt.savefig('./benchmarks/{}.png'.format(file_name))
 
     # Dataframe
     df = pd.DataFrame.from_dict(_benchmark_list_results)
     df.columns.values[0] = 'Database'
     df.columns.values[1] = '# Repetitions'
-    df.columns.values[2] = '# of Sets'
+    df.columns.values[2] = 'Chunk Size'
     df.columns.values[3] = 'Avg Execution Time (s)'
 
-    _pdf.pandas_df_to_pdf(df, './benchmarks/set_cmd.pdf')
+    _pdf.pandas_df_to_pdf(df, './benchmarks/{}.pdf'.format(file_name))
 
     print(df)
   
@@ -101,6 +101,14 @@ if __name__ == "__main__":
         # {'ds_size': 5000, 'flush': True}
     ]
     
+    _set_cmd_append_benchmark_suites = [
+        {'ds_size': 100, 'append': True},
+        {'ds_size': 500, 'append': True},
+        # {'ds_size': 1000, 'flush': True},
+        # {'ds_size': 2000, 'flush': True},
+        # {'ds_size': 5000, 'flush': True}
+    ]
+    
     connectors = [
         {'instance': _redis, 'c': 'red', 'results': []},
         {'instance': _dragonfly, 'c': 'mediumorchid', 'results': []}
@@ -116,16 +124,18 @@ if __name__ == "__main__":
         _ds.fetch_ds()
         
         # Set command benchmark with static data size inside store
-        set_cmd_benchmark_suite(flush=True)
-        render_benchmark_set_cmd_results()
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, flush=True)
+        render_benchmark_set_cmd_results(bench_suite=_set_cmd_benchmark_suites, file_name='set_cmd')
         
-        for con in connectors:                
-            for suite in _set_cmd_benchmark_suites:
-                _bench.run_set_benchmark(
-                    con.get('instance'), 
-                    _ds.get_dataset()[0:suite.get('ds_size')], 
-                    suite.get('flush'))
-        
+        """
+        Set command benchmark that each iteration appends the data to the store. 
+        This is done in order to test each system how each individual command that
+        sets data to the store behaves when the database contains pre-existing data 
+        that possibly might hinder its performance.
+        """
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, flush=False)
+        render_benchmark_set_cmd_results(bench_suite=_set_cmd_append_benchmark_suites, file_name='set_cmd_append')
+
         
         get_cmd_benchmark_suite()
  
