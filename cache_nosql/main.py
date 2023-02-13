@@ -3,55 +3,19 @@ import sys
 import re
 import numpy as np
 from matplotlib import pyplot as plt 
-from matplotlib.backends.backend_pdf import PdfPages
 
 sys.path.append('../')
 
 import dataset
+import pdf_converter as pdf
 import cache_nosql.models.dragonfly as dragonflydb
 import cache_nosql.models.redis as redisdb
 import benchmark
-
 
 def clean_results():
     for con in connectors:
         con['results'] = []
     
-def _draw_as_table(df, pagesize):
-    alternating_colors = [['white'] * len(df.columns), ['lightgray'] * len(df.columns)] * len(df)
-    alternating_colors = alternating_colors[:len(df)]
-    fig, ax = plt.subplots(figsize=pagesize)
-    ax.axis('tight')
-    ax.axis('off')
-    the_table = ax.table(cellText=df.values,
-                        rowLabels=df.index,
-                        colLabels=df.columns,
-                        rowColours=['lightblue']*len(df),
-                        colColours=['lightblue']*len(df.columns),
-                        cellColours=alternating_colors,
-                        loc='center')
-    return fig     
-        
-def dataframe_to_pdf(df, filename, numpages=(1, 1), pagesize=(11, 8.5)):
-  with PdfPages(filename) as pdf:
-    nh, nv = numpages
-    rows_per_page = len(df) // nh
-    cols_per_page = len(df.columns) // nv
-    for i in range(0, nh):
-        for j in range(0, nv):
-            page = df.iloc[(i*rows_per_page):min((i+1)*rows_per_page, len(df)),
-                           (j*cols_per_page):min((j+1)*cols_per_page, len(df.columns))]
-            fig = _draw_as_table(page, pagesize)
-            if nh > 1 or nv > 1:
-                # Add a part/page number at bottom-center of page
-                fig.text(0.5, 0.5/pagesize[0],
-                         "Part-{}x{}: Page-{}".format(i+1, j+1, i*nv + j + 1),
-                         ha='center', fontsize=8)
-            pdf.savefig(fig, bbox_inches='tight')
-            
-            plt.close()
-
-
 def set_cmd_benchmark_suite():
     clean_results()
     
@@ -110,12 +74,7 @@ def set_cmd_benchmark_suite():
     df.columns.values[2] = 'Data Chunk Size'
     df.columns.values[3] = 'Avg Execution Time (s)'
 
-    dataframe_to_pdf(df, './benchmarks/set_cmd.pdf')
-
-
-    # pp = PdfPages("./benchmarks/set_cmd.pdf")
-    # pp.savefig(plt, bbox_inches='tight')
-    # pp.close()
+    _pdf.pandas_df_to_pdf(df, './benchmarks/set_cmd.pdf')
 
     print(df)
  
@@ -123,9 +82,10 @@ def set_cmd_benchmark_suite():
 if __name__ == "__main__":
     _bench = benchmark.Benchmark()
     _ds = dataset.Dataset()
+    _pdf = pdf.PDFConverter()
     _redis = redisdb.RedisImplementationClass()
     _dragonfly = dragonflydb.DragonflyImplementationClass()
-    
+
     try:
         # Connect to databases
         connectors = [
