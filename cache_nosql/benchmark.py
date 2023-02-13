@@ -29,7 +29,7 @@ class Benchmark:
     def run_set_benchmark(self, con, ds, flush) -> bool:
         sum_exec_time = 0
         
-        for i in range(0, self.repetitions):
+        for rep in range(0, self.repetitions):
             start = time.time()
             for i in range(0, len(ds)):
                 con.set(ds[i].get('_id'), ds[i].get('name'))
@@ -43,6 +43,22 @@ class Benchmark:
         self.avg_exec = sum_exec_time / self.repetitions
         return True
     
+    def run_get_benchmark(self, con, keys) -> bool:
+        sum_exec_time = 0
+
+        for rep in range(0, self.repetitions):
+            start = time.time()
+            for k in keys:
+                con.get(k)
+            end = time.time()
+            time_seconds = end - start 
+            
+            sum_exec_time += time_seconds
+            
+        self.avg_exec = sum_exec_time / self.repetitions
+        return True
+
+
     # Getters / Setters
     def get_database_name(self) -> str:
         return self.database

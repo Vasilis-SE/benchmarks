@@ -78,6 +78,8 @@ def set_cmd_benchmark_suite():
 
     print(df)
  
+def get_cmd_benchmark_suite():
+    clean_results()
   
 if __name__ == "__main__":
     _bench = benchmark.Benchmark()
@@ -101,10 +103,8 @@ if __name__ == "__main__":
         _ds.fetch_ds()
         
         set_cmd_benchmark_suite()
-  
-
- 
-    
+        get_cmd_benchmark_suite()
+        
     except Exception as e:
         print(str(e))
         sys.exit()
