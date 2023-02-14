@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 import sys
 import re
@@ -34,8 +35,6 @@ def set_cmd_benchmark_suite(bench_suite, flush, repetitions):
                     chunk_beginning = bench_suite[idx - 1].get('ds_size')
                 chunk_end += chunk_beginning
 
-            print('Beggining: {} , End: {}'.format(chunk_beginning, chunk_end))
-
             # Perform the set operation
             _bench.run_set_benchmark(
                 con.get('instance'), 
@@ -46,13 +45,24 @@ def set_cmd_benchmark_suite(bench_suite, flush, repetitions):
             con.get('results').append(bench_result.get('avg_exec'))
             _benchmark_list_results.append(bench_result)
   
-def get_cmd_benchmark_suite(bench_suite, repetitions):
+def get_cmd_benchmark_suite(bench_suite, repetitions, num_keys_to_search):
     clean_results()
     
     for idx, suite in enumerate(bench_suite):
+        
+        # Render a random generated list of keys out of the number of keys 
+        # to search and those that are stored.
+        keys_to_search_for = []
+        chunk_data_to_store = _ds.get_dataset()[0:suite.get('to_set_data')] 
+        available_keys = [d['_id'] for d in chunk_data_to_store]
+
+        for i in range(0, num_keys_to_search):
+            rand_int = random.randint(0, num_keys_to_search)
+            keys_to_search_for.append(available_keys[rand_int])
+                
         for con in connectors:
             # Flush database to insert the new chunk of data.
-            con.flush() 
+            con.get('instance').flush() 
             
             # Set benchmarking class data.
             _bench.reset_benchmark()
@@ -61,8 +71,23 @@ def get_cmd_benchmark_suite(bench_suite, repetitions):
                 '', 
                 type(con.get('instance')).__name__))
             _bench.set_repetitions(repetitions)
-
-    
+            
+            # Populate the database
+            for data in chunk_data_to_store:
+                con.get('instance').set(data.get('_id'), data.get('name'))
+                
+            # Run the get benchmark with the `to be searched keys`
+            _bench.run_get_benchmark(con.get('instance'), keys_to_search_for)
+                
+            bench_result = _bench.get_benchmark_dict()
+            con.get('results').append(bench_result.get('avg_exec'))
+            _benchmark_list_results.append({
+                "database": bench_result.get("database"), 
+                "repetitions": bench_result.get("repetitions"), 
+                "searched": num_keys_to_search,
+                "size": suite.get('to_set_data'), 
+                "avg_exec": bench_result.get("avg_exec") 
+            })
  
 def render_benchmark_set_cmd_results(bench_suite, file_name, title):
     X_axis = np.arange(len(bench_suite))
@@ -95,8 +120,24 @@ def render_benchmark_set_cmd_results(bench_suite, file_name, title):
     df.columns.values[3] = 'Avg Execution Time (s)'
 
     _pdf.pandas_df_to_pdf(df, './benchmarks/{}.pdf'.format(file_name))
-
     print(df)
+  
+def render_benchmark_get_cmd_result(file_name, title):
+
+
+    # Dataframe
+    df = pd.DataFrame.from_dict(_benchmark_list_results)
+    df.columns.values[0] = 'Database'
+    df.columns.values[1] = '# Repetitions'
+    df.columns.values[2] = '# of Keys Searched'
+    df.columns.values[3] = 'Data Size Searched On'
+    df.columns.values[4] = 'Avg Execution Time (s)'
+
+    _pdf.pandas_df_to_pdf(df, './benchmarks/{}.pdf'.format(file_name))
+    print(df)
+
+  
+  
   
 def clean_results():
     global _benchmark_list_results
@@ -131,7 +172,11 @@ if __name__ == "__main__":
     ]
     
     _get_cmd_benchmark_suites = [
-        {'get': 100, 'set': 1000},
+        {'to_set_data': 500},
+        {'to_set_data': 1000},
+        {'to_set_data': 1500},
+        {'to_set_data': 2000},
+        {'to_set_data': 2500}
     ]
     
     connectors = [
@@ -152,11 +197,11 @@ if __name__ == "__main__":
         Set commannd benchmark that sets the data once without multiple repetition and fetching
         the average time performance.
         """
-        set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=1, flush=True)
-        render_benchmark_set_cmd_results(
-            bench_suite=_set_cmd_benchmark_suites, 
-            file_name='set_cmd_single_rep',
-            title='Set Benchmarks with Empty DB without Repetitions')
+        # set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=1, flush=True)
+        # render_benchmark_set_cmd_results(
+        #     bench_suite=_set_cmd_benchmark_suites, 
+        #     file_name='set_cmd_single_rep',
+        #     title='Set Benchmarks with Empty DB without Repetitions')
         
         """
         Set commannd benchmark that each iteration sets a specific amount of data to the
@@ -165,11 +210,11 @@ if __name__ == "__main__":
         thing that can effect/hinder its performance (suc as pre existing data that slow down
         its processes).
         """
-        set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=5, flush=True)
-        render_benchmark_set_cmd_results(
-            bench_suite=_set_cmd_benchmark_suites, 
-            file_name='set_cmd_mul_reps',
-            title='Set Benchmarks with Empty DB with Repetitions')
+        # set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=5, flush=True)
+        # render_benchmark_set_cmd_results(
+        #     bench_suite=_set_cmd_benchmark_suites, 
+        #     file_name='set_cmd_mul_reps',
+        #     title='Set Benchmarks with Empty DB with Repetitions')
         
         """
         Set command benchmark that each iteration appends the data to the store. 
@@ -178,11 +223,11 @@ if __name__ == "__main__":
         that possibly might hinder its performance. There is a single repetition without
         rendering the average execution time.
         """
-        set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=1, flush=False)
-        render_benchmark_set_cmd_results(
-            bench_suite=_set_cmd_append_benchmark_suites, 
-            file_name='set_cmd_append_single_reps', 
-            title='Set Benchmarks Appending Data to DB without Repetitions')
+        # set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=1, flush=False)
+        # render_benchmark_set_cmd_results(
+        #     bench_suite=_set_cmd_append_benchmark_suites, 
+        #     file_name='set_cmd_append_single_reps', 
+        #     title='Set Benchmarks Appending Data to DB without Repetitions')
         
         """
         Set command benchmark that each iteration appends the data to the store. 
@@ -190,17 +235,17 @@ if __name__ == "__main__":
         sets data to the store behaves when the database contains pre-existing data 
         that possibly might hinder its performance.
         """
-        set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=5, flush=False)
-        render_benchmark_set_cmd_results(
-            bench_suite=_set_cmd_append_benchmark_suites, 
-            file_name='set_cmd_append_mul_reps', 
-            title='Set Benchmarks Appending Data to DB with Repetitions')
+        # set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=5, flush=False)
+        # render_benchmark_set_cmd_results(
+        #     bench_suite=_set_cmd_append_benchmark_suites, 
+        #     file_name='set_cmd_append_mul_reps', 
+        #     title='Set Benchmarks Appending Data to DB with Repetitions')
 
         
         
+        get_cmd_benchmark_suite(bench_suite=_get_cmd_benchmark_suites, repetitions=1, num_keys_to_search=100)
+        render_benchmark_get_cmd_result(file_name='get_cmd_single_rep', title='')
         
-        get_cmd_benchmark_suite(bench_suite=_get_cmd_benchmark_suites)
- 
     except Exception as e:
         print(str(e))
         sys.exit()

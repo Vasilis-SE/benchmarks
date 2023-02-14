@@ -49,7 +49,7 @@ class Benchmark:
         for rep in range(0, self.repetitions):
             start = time.time()
             for k in keys:
-                con.get(k)
+                con.get(key=k)
             end = time.time()
             time_seconds = end - start 
             
