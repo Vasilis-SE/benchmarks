@@ -28,7 +28,7 @@ class Benchmark:
    
     def run_set_benchmark(self, con, ds, flush) -> bool:
         sum_exec_time = 0
-        
+                
         for rep in range(0, self.repetitions):
             start = time.time()
             for i in range(0, len(ds)):
