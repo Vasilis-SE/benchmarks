@@ -89,7 +89,7 @@ def get_cmd_benchmark_suite(bench_suite, repetitions, num_keys_to_search):
                 "avg_exec": bench_result.get("avg_exec") 
             })
  
-def render_benchmark_set_cmd_results(bench_suite, file_name, title):
+def render_benchmark_set_cmd_results(bench_suite, file_name, title, xlabel, ylabel):
     X_axis = np.arange(len(bench_suite))
     X_labels = [d['ds_size'] for d in bench_suite]
     
@@ -104,13 +104,14 @@ def render_benchmark_set_cmd_results(bench_suite, file_name, title):
                 type(con.get('instance')).__name__), 
             color=con.get('c')) 
         
-    plt.xticks(X_axis, X_labels)
+    plt.xticks(X_axis, X_labels, rotation=45)
     plt.title(title) 
-    plt.xlabel('Data Size (# of Sets)')
-    plt.ylabel('Average Execution Time')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.legend()
-    plt.savefig('./benchmarks/{}.png'.format(file_name))
+    plt.savefig('./benchmarks/{}.png'.format(file_name), bbox_inches='tight')
     plt.clf()
+    
 
     # Dataframe
     df = pd.DataFrame.from_dict(_benchmark_list_results)
@@ -120,10 +121,33 @@ def render_benchmark_set_cmd_results(bench_suite, file_name, title):
     df.columns.values[3] = 'Avg Execution Time (s)'
 
     _pdf.pandas_df_to_pdf(df, './benchmarks/{}.pdf'.format(file_name))
+    
+    print(title)
     print(df)
+    print('-----------------')
   
-def render_benchmark_get_cmd_result(file_name, title):
+def render_benchmark_get_cmd_result(bench_suite, file_name, title, xlabel, ylabel):
+    X_axis = np.arange(len(bench_suite))
+    X_labels = [d['to_set_data'] for d in bench_suite]
 
+    for idx, con in enumerate(connectors):
+        plt.bar(
+            (X_axis + (idx * 0.25)),
+            con.get('results'),
+            width=0.25,
+            label=re.sub(
+                'ImplementationClass$', 
+                '',
+                type(con.get('instance')).__name__), 
+            color=con.get('c')) 
+
+    plt.xticks(X_axis, X_labels, rotation=45)
+    plt.title(title) 
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.savefig('./benchmarks/{}.png'.format(file_name), bbox_inches='tight')
+    plt.clf()
 
     # Dataframe
     df = pd.DataFrame.from_dict(_benchmark_list_results)
@@ -134,11 +158,11 @@ def render_benchmark_get_cmd_result(file_name, title):
     df.columns.values[4] = 'Avg Execution Time (s)'
 
     _pdf.pandas_df_to_pdf(df, './benchmarks/{}.pdf'.format(file_name))
+    
+    print(title)
     print(df)
+    print('-----------------')
 
-  
-  
-  
 def clean_results():
     global _benchmark_list_results
     
@@ -158,25 +182,44 @@ if __name__ == "__main__":
     _set_cmd_benchmark_suites = [
         {'ds_size': 100, 'append': False},
         {'ds_size': 500, 'append': False},
-        # {'ds_size': 1000, 'flush': True},
-        # {'ds_size': 2000, 'flush': True},
-        # {'ds_size': 5000, 'flush': True}
+        {'ds_size': 1000, 'append': False},
+        {'ds_size': 1500, 'append': False},
+        {'ds_size': 2000, 'append': False},
+        {'ds_size': 2500, 'append': False},
+        {'ds_size': 5000, 'append': False},
+        {'ds_size': 7500, 'append': False},
+        {'ds_size': 10000, 'append': False},
+        {'ds_size': 15000, 'append': False},
+        {'ds_size': 20000, 'append': False},
+        {'ds_size': 25000, 'append': False},
+        {'ds_size': 30000, 'append': False},
+        {'ds_size': 35000, 'append': False},
+        {'ds_size': 40000, 'append': False},
     ]
     
     _set_cmd_append_benchmark_suites = [
         {'ds_size': 100, 'append': True},
         {'ds_size': 500, 'append': True},
-        # {'ds_size': 1000, 'append': True},
-        # {'ds_size': 2000, 'append': True},
-        # {'ds_size': 5000, 'append': True}
+        {'ds_size': 1000, 'append': True},
+        {'ds_size': 2000, 'append': True},
+        {'ds_size': 5000, 'append': True},
+        {'ds_size': 10000, 'append': True},
+        {'ds_size': 15000, 'append': True},
+        {'ds_size': 20000, 'append': True}
     ]
-    
+        
     _get_cmd_benchmark_suites = [
-        {'to_set_data': 500},
-        {'to_set_data': 1000},
         {'to_set_data': 1500},
         {'to_set_data': 2000},
-        {'to_set_data': 2500}
+        {'to_set_data': 2500},
+        {'to_set_data': 5000},
+        {'to_set_data': 10000},
+        {'to_set_data': 15000},
+        {'to_set_data': 20000},
+        {'to_set_data': 25000},
+        {'to_set_data': 30000},
+        {'to_set_data': 35000},
+        {'to_set_data': 40000},
     ]
     
     connectors = [
@@ -192,16 +235,18 @@ if __name__ == "__main__":
         _ds.set_name("names")
         _ds.generate_path()
         _ds.fetch_ds()
-        
+                
         """
         Set commannd benchmark that sets the data once without multiple repetition and fetching
         the average time performance.
         """
-        # set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=1, flush=True)
-        # render_benchmark_set_cmd_results(
-        #     bench_suite=_set_cmd_benchmark_suites, 
-        #     file_name='set_cmd_single_rep',
-        #     title='Set Benchmarks with Empty DB without Repetitions')
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=1, flush=True)
+        render_benchmark_set_cmd_results(
+            bench_suite=_set_cmd_benchmark_suites, 
+            file_name='set_cmd_single_rep',
+            title='Set Benchmarks with Empty DB without Repetitions',
+            xlabel='Data Size (# of Sets)',
+            ylabel='Execution Time for Single Rep.')
         
         """
         Set commannd benchmark that each iteration sets a specific amount of data to the
@@ -210,11 +255,13 @@ if __name__ == "__main__":
         thing that can effect/hinder its performance (suc as pre existing data that slow down
         its processes).
         """
-        # set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=5, flush=True)
-        # render_benchmark_set_cmd_results(
-        #     bench_suite=_set_cmd_benchmark_suites, 
-        #     file_name='set_cmd_mul_reps',
-        #     title='Set Benchmarks with Empty DB with Repetitions')
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_benchmark_suites, repetitions=10, flush=True)
+        render_benchmark_set_cmd_results(
+            bench_suite=_set_cmd_benchmark_suites, 
+            file_name='set_cmd_mul_reps',
+            title='Set Benchmarks with Empty DB with Repetitions',
+            xlabel='Data Size (# of Sets)',
+            ylabel='Average Execution Time')
         
         """
         Set command benchmark that each iteration appends the data to the store. 
@@ -223,11 +270,13 @@ if __name__ == "__main__":
         that possibly might hinder its performance. There is a single repetition without
         rendering the average execution time.
         """
-        # set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=1, flush=False)
-        # render_benchmark_set_cmd_results(
-        #     bench_suite=_set_cmd_append_benchmark_suites, 
-        #     file_name='set_cmd_append_single_reps', 
-        #     title='Set Benchmarks Appending Data to DB without Repetitions')
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=1, flush=False)
+        render_benchmark_set_cmd_results(
+            bench_suite=_set_cmd_append_benchmark_suites, 
+            file_name='set_cmd_append_single_reps', 
+            title='Set Benchmarks Appending Data to DB without Repetitions',
+            xlabel='Data Size (# of Sets)',
+            ylabel='Execution Time for Single Rep.')
         
         """
         Set command benchmark that each iteration appends the data to the store. 
@@ -235,16 +284,49 @@ if __name__ == "__main__":
         sets data to the store behaves when the database contains pre-existing data 
         that possibly might hinder its performance.
         """
-        # set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=5, flush=False)
-        # render_benchmark_set_cmd_results(
-        #     bench_suite=_set_cmd_append_benchmark_suites, 
-        #     file_name='set_cmd_append_mul_reps', 
-        #     title='Set Benchmarks Appending Data to DB with Repetitions')
+        set_cmd_benchmark_suite(bench_suite=_set_cmd_append_benchmark_suites, repetitions=10, flush=False)
+        render_benchmark_set_cmd_results(
+            bench_suite=_set_cmd_append_benchmark_suites, 
+            file_name='set_cmd_append_mul_reps', 
+            title='Set Benchmarks Appending Data to DB with Repetitions',
+            xlabel='Data Size (# of Sets)',
+            ylabel='Average Execution Time')
 
+
+
+        get_cmd_benchmark_suite(
+            bench_suite=_get_cmd_benchmark_suites, 
+            repetitions=10, 
+            num_keys_to_search=100)
+        render_benchmark_get_cmd_result(
+            bench_suite=_get_cmd_benchmark_suites,
+            file_name='get_cmd_100_mul_rep', 
+            title='Get 100 keys Benchmarks Out of X Data in DB',
+            xlabel='# of Data in DB to Query From',
+            ylabel='Average Execution Time')
         
-        
-        get_cmd_benchmark_suite(bench_suite=_get_cmd_benchmark_suites, repetitions=1, num_keys_to_search=100)
-        render_benchmark_get_cmd_result(file_name='get_cmd_single_rep', title='')
+        get_cmd_benchmark_suite(
+            bench_suite=_get_cmd_benchmark_suites, 
+            repetitions=10, 
+            num_keys_to_search=500)
+        render_benchmark_get_cmd_result(
+            bench_suite=_get_cmd_benchmark_suites,
+            file_name='get_cmd_500_mul_rep', 
+            title='Get 500 keys Benchmarks Out of X Data in DB',
+            xlabel='# of Data in DB to Query From',
+            ylabel='Average Execution Time')
+
+        get_cmd_benchmark_suite(
+            bench_suite=_get_cmd_benchmark_suites, 
+            repetitions=10, 
+            num_keys_to_search=1000)
+        render_benchmark_get_cmd_result(
+            bench_suite=_get_cmd_benchmark_suites,
+            file_name='get_cmd_1000_mul_rep', 
+            title='Get 1000 keys Benchmarks Out of X Data in DB',
+            xlabel='# of Data in DB to Query From',
+            ylabel='Average Execution Time')
+
         
     except Exception as e:
         print(str(e))
